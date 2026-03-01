@@ -12,15 +12,18 @@ st.title("تسجيل صوتي ورفع على Dropbox من الموبايل أو
 
 # ---------------- Dropbox Access ----------------
 DROPBOX_ACCESS_TOKEN = st.secrets["DROPBOX_ACCESS_TOKEN"]
-DROPBOX_FOLDER = "/AudioRecordings"  # فولدر في Dropbox للتطبيق
-
+DROPBOX_FOLDER = "/AudioRecordings"  # لازم يبدأ بـ /
 dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
 
-# لو الفولدر مش موجود، ينشأ تلقائي
+# تأكد من وجود الفولدر على Dropbox، لو مش موجود ينشأ تلقائي
 try:
     dbx.files_get_metadata(DROPBOX_FOLDER)
-except dropbox.exceptions.ApiError:
-    dbx.files_create_folder_v2(DROPBOX_FOLDER)
+except dropbox.exceptions.ApiError as e:
+    # لو الفولدر مش موجود، انشأه
+    dbx.files_create_folder_v2(DROPBOX_FOLDER) # فولدر في Dropbox للتطبيق
+
+
+
 
 # ---------------- تسجيل الصوت ----------------
 class AudioRecorder(AudioProcessorBase):
