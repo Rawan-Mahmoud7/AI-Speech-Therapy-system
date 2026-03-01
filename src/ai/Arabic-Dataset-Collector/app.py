@@ -1,58 +1,35 @@
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, AudioProcessorBase, WebRtcMode
-import av
-import numpy as np
-from pydub import AudioSegment
-import tempfile
 import dropbox
 from datetime import datetime
+import tempfile
 
-st.title("تسجيل صوتي ورفع على Dropbox من الموبايل أو الكمبيوتر")
+st.set_page_config(page_title="Audio Recorder", layout="wide")
+st.title("تسجيل صوتي ورفع على Dropbox من أي جهاز")
 
-# ---------------- Dropbox Access ----------------
+# --------- Dropbox Access ----------
 DROPBOX_ACCESS_TOKEN = st.secrets["DROPBOX_ACCESS_TOKEN"]
 dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
 
-# ---------------- تسجيل الصوت ----------------
-class AudioRecorder(AudioProcessorBase):
-    def __init__(self):
-        self.frames = []
-
-    def recv(self, frame: av.AudioFrame):
-        self.frames.append(frame.to_ndarray())
-        return frame
-
-webrtc_ctx = webrtc_streamer(
-    key="audio-recorder",
-    mode=WebRtcMode.SENDRECV,
-    audio_processor_factory=AudioRecorder,
-    media_stream_constraints={"audio": True, "video": False},
-    async_processing=True,
-)
-
-# ---------------- رفع الصوت ----------------
-def upload_to_dropbox(file_path):
+# --------- رفع الملف على Dropbox ----------
+def upload_to_dropbox(file_bytes, filename=None):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    dropbox_path = f"/audio_{timestamp}.wav"  # كل ملف داخل App folder تلقائي
-    with open(file_path, "rb") as f:
-        dbx.files_upload(f.read(), dropbox_path)
+    if not filename:
+        filename = f"audio_{timestamp}.wav"
+    dropbox_path = f"/{filename}"  # كل الملفات جوه App Folder تلقائي
+    dbx.files_upload(file_bytes, dropbox_path)
     return dropbox_path
 
-# ---------------- واجهة المستخدم ----------------
-if webrtc_ctx.audio_processor:
-    if st.button("حفظ ورفع التسجيل"):
-        frames = webrtc_ctx.audio_processor.frames
-        if frames:
-            audio_array = np.concatenate(frames, axis=1)
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-                temp_file_path = f.name
-                sound = AudioSegment(
-                    audio_array.tobytes(),
-                    frame_rate=48000,
-                    sample_width=audio_array.dtype.itemsize,
-                    channels=1
-                )
-                sound.export(temp_file_path, format="wav")
-            # رفع على Dropbox
-            dropbox_path = upload_to_dropbox(temp_file_path)
-            st.success(f"تم رفع التسجيل على Dropbox في: {dropbox_path}")
+# --------- واجهة المستخدم ----------
+st.markdown("### 1️⃣ سجل صوتك على جهازك أولاً")
+
+uploaded_file = st.file_uploader(
+    "اختر ملف صوتي (wav, mp3, m4a) من جهازك",
+    type=["wav", "mp3", "m4a"]
+)
+
+if uploaded_file is not None:
+    st.audio(uploaded_file, format='audio/wav')
+    if st.button("رفع الملف على Dropbox"):
+        dropbox_path = upload_to_dropbox(uploaded_file.read())
+        st.success(f"تم رفع الملف على Dropbox بنجاح في: {dropbox_path}")
+        st.markdown(f"[رابط الملف على Dropbox](https://www.dropbox.com/home{dropbox_path})")
