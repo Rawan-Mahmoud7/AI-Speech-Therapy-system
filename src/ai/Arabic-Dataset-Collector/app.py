@@ -23,8 +23,7 @@ MIN_INTERVAL_BETWEEN_SUBMITS = 60  # seconds rate limit
 SCOPES = ['https://www.googleapis.com/auth/drive']
 DRIVE_PARENT_FOLDER_ID = st.secrets["DRIVE_PARENT_FOLDER_ID"]
 
-SERVICE_ACCOUNT_INFO = json.loads(st.secrets["GOOGLE_SERVICE_ACCOUNT"])
-
+SERVICE_ACCOUNT_INFO = st.secrets["GOOGLE_SERVICE_ACCOUNT"]
 # =========================
 # INIT DRIVE
 # =========================
