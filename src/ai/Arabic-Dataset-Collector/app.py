@@ -229,13 +229,12 @@ if st.button("إنهاء ورفع البيانات"):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         filename = f"{patient_id}_{letter}_{haraka}_{timestamp}.wav"
-
-        file_id = upload_file(buffer.read(), filename, haraka_folder)
-
-        if not file_id:
-            st.error(f"فشل رفع {filename}")
-            st.stop()
-
+        try:
+            file_id = upload_file(buffer.read(), filename, haraka_folder)
+        except Exception as e:
+            st.error("Upload Error:")
+            st.write(str(e))
+            raise e
         count += 1
         progress_bar.progress(count / TOTAL_REQUIRED)
 
