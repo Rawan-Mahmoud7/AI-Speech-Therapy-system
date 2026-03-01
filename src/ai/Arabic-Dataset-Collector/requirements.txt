@@ -1,0 +1,6 @@
+streamlit
+numpy
+librosa
+google-api-python-client
+google-auth
+scipy
