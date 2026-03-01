@@ -7,18 +7,11 @@ import tempfile
 import dropbox
 from datetime import datetime
 
-st.set_page_config(page_title="Audio Recorder", layout="wide")
 st.title("تسجيل صوتي ورفع على Dropbox من الموبايل أو الكمبيوتر")
 
 # ---------------- Dropbox Access ----------------
 DROPBOX_ACCESS_TOKEN = st.secrets["DROPBOX_ACCESS_TOKEN"]
-DROPBOX_FOLDER = ""  # سيبيه فارغ لأن App folder موجود تلقائي
-dropbox_path = f"/audio_{timestamp}.wav"  # أي ملف هيتحط جوه فولدر التطبيق تلقائي
 dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
-
-
-
-
 
 # ---------------- تسجيل الصوت ----------------
 class AudioRecorder(AudioProcessorBase):
@@ -38,9 +31,9 @@ webrtc_ctx = webrtc_streamer(
 )
 
 # ---------------- رفع الصوت ----------------
-def upload_to_dropbox(file_path, dropbox_folder):
+def upload_to_dropbox(file_path):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    dropbox_path = f"{dropbox_folder}/audio_{timestamp}.wav"
+    dropbox_path = f"/audio_{timestamp}.wav"  # كل ملف داخل App folder تلقائي
     with open(file_path, "rb") as f:
         dbx.files_upload(f.read(), dropbox_path)
     return dropbox_path
@@ -61,5 +54,5 @@ if webrtc_ctx.audio_processor:
                 )
                 sound.export(temp_file_path, format="wav")
             # رفع على Dropbox
-            dropbox_path = upload_to_dropbox(temp_file_path, DROPBOX_FOLDER)
+            dropbox_path = upload_to_dropbox(temp_file_path)
             st.success(f"تم رفع التسجيل على Dropbox في: {dropbox_path}")
