@@ -1,80 +1,193 @@
 import streamlit as st
-import dropbox
+import numpy as np
+import librosa
+import io
+import time
+from scipy.io.wavfile import write
 from datetime import datetime
-import tempfile
-import base64
+import dropbox
 
-st.set_page_config(page_title="Audio Recorder", layout="wide")
-st.title("تسجيل صوتي مباشر ورفع على Dropbox")
+# =========================
+# CONFIG
+# =========================
 
-# ---------------- Dropbox ----------------
-DROPBOX_ACCESS_TOKEN = "حطي هنا Access Token بتاعك"
+SAMPLE_RATE = 16000
+DURATION = 1
+MIN_RMS_THRESHOLD = 0.01
+MIN_INTERVAL_BETWEEN_SUBMITS = 60  # seconds rate limit
+
+DROPBOX_ACCESS_TOKEN = st.secrets["DROPBOX_ACCESS_TOKEN"]  # خلي الـ token هنا
 dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
 
-def upload_to_dropbox(file_bytes, filename=None):
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    if not filename:
-        filename = f"audio_{timestamp}.wav"
-    dropbox_path = f"/{filename}"  # داخل App folder تلقائي
+# =========================
+# DATA STRUCTURE
+# =========================
+
+structure = {
+    "س": ["sukun","fatha","kasra","damma"],
+    "س_لثغه": ["sukun","fatha","kasra","damma"],
+    "ث": ["fatha","kasra","damma"],
+    "ش": ["fatha","kasra","damma"],
+    "ر": ["sukun","fatha","kasra","damma"],
+    "ر_لثغه": ["sukun","fatha","kasra","damma"],
+    "و": ["fatha","kasra","damma"],
+    "ي": ["fatha","kasra","damma"],
+    "ل": ["fatha","kasra","damma"]
+}
+
+TOTAL_REQUIRED = sum(len(v) for v in structure.values())
+
+# =========================
+# SESSION STATE
+# =========================
+
+if "recordings" not in st.session_state:
+    st.session_state.recordings = {}
+
+if "last_submit_time" not in st.session_state:
+    st.session_state.last_submit_time = 0
+
+# =========================
+# UI
+# =========================
+
+st.title("Arabic Speech Data Collector - Dropbox Version")
+
+patient_id = st.text_input("Patient ID")
+
+st.markdown("""
+### تعليمات:
+- اقرأ الحرف مرة واحدة فقط
+- لا تضف أي كلمة قبله أو بعده
+- انتظر العد 1..2..3 ثم انطق
+- المدة تقريباً ثانية
+""")
+
+# =========================
+# AUDIO VALIDATION
+# =========================
+
+def validate_audio(audio):
+    rms = np.sqrt(np.mean(audio**2))
+    if rms < MIN_RMS_THRESHOLD:
+        return False, "الصوت منخفض جداً أو لم يتم النطق"
+    return True, None
+
+# =========================
+# PROCESS AUDIO
+# =========================
+
+def process_audio(audio_bytes):
+    audio, sr = librosa.load(io.BytesIO(audio_bytes), sr=SAMPLE_RATE, mono=True)
+    audio = librosa.util.normalize(audio)
+    if len(audio) > SAMPLE_RATE:
+        audio = audio[:SAMPLE_RATE]
+    else:
+        padding = SAMPLE_RATE - len(audio)
+        audio = np.pad(audio, (0, padding))
+    return audio
+
+# =========================
+# DROPBOX HELPERS
+# =========================
+
+def create_folder_if_not_exists(path):
+    try:
+        dbx.files_get_metadata(path)
+    except dropbox.exceptions.ApiError:
+        dbx.files_create_folder_v2(path)
+
+def upload_file(file_bytes, dropbox_path):
     dbx.files_upload(file_bytes, dropbox_path)
     return dropbox_path
 
-# ---------------- تسجيل الصوت ----------------
-st.markdown("### اضغط على الزرار وسجل صوتك مباشرة من المتصفح:")
+# =========================
+# RECORDING UI
+# =========================
 
-# HTML + JS لتسجيل الصوت
-RECORD_HTML = """
-<script>
-let recorder;
-let audioStream;
-let chunks = [];
-let recording = false;
+completed = 0
 
-function startRecording() {
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-        audioStream = stream;
-        recorder = new MediaRecorder(stream);
-        recorder.ondataavailable = e => chunks.push(e.data);
-        recorder.onstop = e => {
-            let blob = new Blob(chunks, { 'type' : 'audio/wav; codecs=opus' });
-            let reader = new FileReader();
-            reader.readAsDataURL(blob);
-            reader.onloadend = function() {
-                let base64data = reader.result.split(',')[1];
-                const pyFunc = window.parent.streamlitWebRTC;
-                window.parent.postMessage({func:'upload_audio', data: base64data}, '*')
-            }
-        }
-        recorder.start();
-        recording = true;
-        document.getElementById("status").innerText = "Recording...";
-    });
-}
+for letter, harakat in structure.items():
+    st.subheader(letter)
 
-function stopRecording() {
-    recorder.stop();
-    audioStream.getTracks().forEach(track => track.stop());
-    document.getElementById("status").innerText = "Recording stopped.";
-}
+    for haraka in harakat:
+        key = f"{letter}__{haraka}"
+        audio_file = st.audio_input(f"سجل {letter} - {haraka}", key=key)
 
-</script>
-<button onclick="startRecording()">ابدأ التسجيل</button>
-<button onclick="stopRecording()">أوقف التسجيل</button>
-<p id="status">Ready</p>
-"""
+        if audio_file is not None:
+            audio_bytes = audio_file.read()
+            audio_array, _ = librosa.load(io.BytesIO(audio_bytes), sr=None, mono=True)
 
-st.components.v1.html(RECORD_HTML, height=150)
+            valid, error = validate_audio(audio_array)
 
-# ---------------- رفع الصوت من Base64 ----------------
-if 'upload_audio' not in st.session_state:
-    st.session_state.upload_audio = None
+            if valid:
+                st.session_state.recordings[key] = audio_bytes
+                st.success("تم التسجيل")
+            else:
+                st.error(error)
 
-def decode_and_upload_audio(base64_data):
-    file_bytes = base64.b64decode(base64_data)
-    dropbox_path = upload_to_dropbox(file_bytes)
-    st.success(f"تم رفع التسجيل على Dropbox: {dropbox_path}")
-    st.markdown(f"[رابط الملف على Dropbox](https://www.dropbox.com/home{dropbox_path})")
+        if key in st.session_state.recordings:
+            completed += 1
 
-# هذا الجزء سيتم تشغيله عندما يتم إرسال البيانات من JS
-if st.session_state.upload_audio:
-    decode_and_upload_audio(st.session_state.upload_audio)
+# =========================
+# PROGRESS
+# =========================
+
+st.progress(completed / TOTAL_REQUIRED)
+st.write(f"{completed} / {TOTAL_REQUIRED} تسجيل مكتمل")
+
+# =========================
+# SUBMIT
+# =========================
+
+if st.button("إنهاء ورفع البيانات"):
+
+    current_time = time.time()
+
+    if current_time - st.session_state.last_submit_time < MIN_INTERVAL_BETWEEN_SUBMITS:
+        st.error("يرجى الانتظار قبل إعادة الإرسال")
+        st.stop()
+
+    if not patient_id:
+        st.error("أدخل Patient ID")
+        st.stop()
+
+    if completed != TOTAL_REQUIRED:
+        st.error("يجب تسجيل كل الحروف أولاً")
+        st.stop()
+
+    progress_bar = st.progress(0)
+    count = 0
+
+    for key, audio_bytes in st.session_state.recordings.items():
+        letter, haraka = key.split("__")
+        processed = process_audio(audio_bytes)
+
+        buffer = io.BytesIO()
+        write(buffer, SAMPLE_RATE, processed.astype(np.float32))
+        buffer.seek(0)
+
+        # إنشاء فولدرات داخل Dropbox
+        letter_folder = f"/{letter}"
+        haraka_folder = f"{letter_folder}/{haraka}"
+        create_folder_if_not_exists(letter_folder)
+        create_folder_if_not_exists(haraka_folder)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{patient_id}_{letter}_{haraka}_{timestamp}.wav"
+        dropbox_path = f"{haraka_folder}/{filename}"
+
+        try:
+            upload_file(buffer.read(), dropbox_path)
+        except Exception as e:
+            st.error("Upload Error:")
+            st.write(str(e))
+            raise e
+
+        count += 1
+        progress_bar.progress(count / TOTAL_REQUIRED)
+
+    st.session_state.last_submit_time = current_time
+    st.session_state.recordings = {}
+
+    st.success("🎉 تم رفع جميع الملفات بنجاح")
