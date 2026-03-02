@@ -84,34 +84,13 @@ TOTAL_REQUIRED = sum(len(v) for v in structure.values())
 # ==============================
 # AUDIO FUNCTIONS
 # ==============================
-
-import webrtcvad
-
-vad = webrtcvad.Vad(2) 
-
 def apply_vad(audio_bytes):
-    audio, sr = librosa.load(io.BytesIO(audio_bytes), sr=SAMPLE_RATE, mono=True)
+    audio, _ = librosa.load(io.BytesIO(audio_bytes), sr=SAMPLE_RATE, mono=True)
 
-    audio_int16 = (audio * 32768).astype(np.int16)
+    trimmed, _ = librosa.effects.trim(audio, top_db=25)
 
-    frame_duration = 30 
-    frame_size = int(SAMPLE_RATE * frame_duration / 1000)
-
-    speech_frames = []
-    start_index = None
-
-    for i in range(0, len(audio_int16) - frame_size, frame_size):
-        frame = audio_int16[i:i+frame_size]
-        is_speech = vad.is_speech(frame.tobytes(), SAMPLE_RATE)
-
-        if is_speech and start_index is None:
-            start_index = i
-            break
-
-    if start_index is None:
-        return None  
-
-    trimmed = audio[start_index:]
+    if len(trimmed) == 0:
+        return None
 
     target_len = SAMPLE_RATE * RECORD_SECONDS
 
@@ -143,7 +122,7 @@ for letter, harakat in structure.items():
             audio_array, _ = librosa.load(io.BytesIO(raw_bytes), sr=None, mono=True)
 
         processed = apply_vad(raw_bytes)
-
+        
         if processed is not None:
             buffer = io.BytesIO()
             write(buffer, SAMPLE_RATE, processed.astype(np.float32))
@@ -153,6 +132,7 @@ for letter, harakat in structure.items():
             st.success("✔ تم التسجيل")
         else:
             st.error("الصوت مش واضح سجل تاني")
+            
         if key in st.session_state.recordings:
             completed += 1
 
