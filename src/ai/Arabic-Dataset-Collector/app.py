@@ -16,8 +16,11 @@ RECORD_SECONDS = 1
 MIN_RMS_THRESHOLD = 0.01
 MIN_INTERVAL_BETWEEN_SUBMITS = 30
 
-DROPBOX_ACCESS_TOKEN = st.secrets["DROPBOX_ACCESS_TOKEN"]
-dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
+dbx = dropbox.Dropbox(
+    app_key=st.secrets["DROPBOX_APP_KEY"],
+    app_secret=st.secrets["DROPBOX_APP_SECRET"],
+    oauth2_refresh_token=st.secrets["DROPBOX_REFRESH_TOKEN"],
+)
 
 # ==============================
 # SESSION STATE
