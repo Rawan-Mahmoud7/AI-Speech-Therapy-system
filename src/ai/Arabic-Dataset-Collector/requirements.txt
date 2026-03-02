@@ -3,3 +3,4 @@ streamlit-webrtc
 pydub
 numpy
 dropbox
+librosa
