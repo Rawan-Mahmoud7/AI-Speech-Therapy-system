@@ -5,3 +5,4 @@ numpy
 dropbox
 librosa
 webrtcvad
+python-3.11
