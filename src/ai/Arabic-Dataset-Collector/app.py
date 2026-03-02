@@ -121,17 +121,17 @@ for letter, harakat in structure.items():
             raw_bytes = audio_file.read()
             audio_array, _ = librosa.load(io.BytesIO(raw_bytes), sr=None, mono=True)
 
-        processed = apply_vad(raw_bytes)
-        
-        if processed is not None:
-            buffer = io.BytesIO()
-            write(buffer, SAMPLE_RATE, processed.astype(np.float32))
-            buffer.seek(0)
-        
-            st.session_state.recordings[key] = buffer.read()
-            st.success("✔ تم التسجيل")
-        else:
-            st.error("الصوت مش واضح سجل تاني")
+            processed = apply_vad(raw_bytes)
+            
+            if processed is not None:
+                buffer = io.BytesIO()
+                write(buffer, SAMPLE_RATE, processed.astype(np.float32))
+                buffer.seek(0)
+            
+                st.session_state.recordings[key] = buffer.read()
+                st.success("✔ تم التسجيل")
+            else:
+                st.error("الصوت مش واضح سجل تاني")
             
         if key in st.session_state.recordings:
             completed += 1
