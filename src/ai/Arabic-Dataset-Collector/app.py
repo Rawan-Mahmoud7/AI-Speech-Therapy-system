@@ -87,7 +87,7 @@ TOTAL_REQUIRED = sum(len(v) for v in structure.values())
 def apply_vad(audio_bytes):
     audio, _ = librosa.load(io.BytesIO(audio_bytes), sr=SAMPLE_RATE, mono=True)
 
-    trimmed, _ = librosa.effects.trim(audio, top_db=25)
+    trimmed, _ = librosa.effects.trim(audio, top_db=30)
 
     if len(trimmed) == 0:
         return None
