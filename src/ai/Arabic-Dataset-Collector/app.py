@@ -142,7 +142,7 @@ for letter, harakat in structure.items():
             raw_bytes = audio_file.read()
             audio_array, _ = librosa.load(io.BytesIO(raw_bytes), sr=None, mono=True)
 
-           processed = apply_vad(raw_bytes)
+        processed = apply_vad(raw_bytes)
 
         if processed is not None:
             buffer = io.BytesIO()
