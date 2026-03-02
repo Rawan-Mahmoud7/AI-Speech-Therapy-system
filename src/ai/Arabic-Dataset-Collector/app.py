@@ -91,14 +91,17 @@ def validate_audio(audio):
 
 def process_audio(audio_bytes):
     audio, _ = librosa.load(io.BytesIO(audio_bytes), sr=SAMPLE_RATE, mono=True)
+
+    trimmed_audio, _ = librosa.effects.trim(audio, top_db=20)
+
     target_len = SAMPLE_RATE * RECORD_SECONDS
 
-    if len(audio) > target_len:
-        audio = audio[:target_len]
+    if len(trimmed_audio) > target_len:
+        trimmed_audio = trimmed_audio[:target_len]
     else:
-        audio = np.pad(audio, (0, target_len - len(audio)))
+        trimmed_audio = np.pad(trimmed_audio, (0, target_len - len(trimmed_audio)))
 
-    return audio
+    return trimmed_audio
 
 # ==============================
 # RECORDING
