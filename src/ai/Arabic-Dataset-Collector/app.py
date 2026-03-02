@@ -48,7 +48,8 @@ st.markdown("""
 - التسجيل مدته ثانية واحدة فقط
 - اقرأ الحرف مرة واحدة
 - 'انطق الحرف صوت الحرف مش الكلمه مثال 'س' مش 'سين 
-- لا تضف كلمات إضافية
+-  لا تضف كلمات إضافية
+- اضغط علي علامه المايك عشان تعيد التسجيل لو مش مظبوط 
 """)
 
 # ==============================
@@ -138,7 +139,12 @@ st.write(f"{completed} / {TOTAL_REQUIRED}")
 # ==============================
 # SUBMIT
 # ==============================
-
+def ensure_folder(path):
+    try:
+        dbx.files_get_metadata(path)
+    except dropbox.exceptions.ApiError:
+        dbx.files_create_folder_v2(path)
+        
 if st.button("رفع البيانات"):
 
     current_time = time.time()
@@ -163,8 +169,13 @@ if st.button("رفع البيانات"):
         letter, haraka = key.split("__")
 
         filename = f"{speaker_id}.wav"
-        full_path = f"{base_folder}/{letter}/{haraka}/{filename}"
-
+        folder_path = f"{base_folder}/{letter}/{haraka}"
+        full_path = f"{folder_path}/{filename}"
+        
+        ensure_folder(base_folder)
+        ensure_folder(f"{base_folder}/{letter}")
+        ensure_folder(folder_path)
+        
         dbx.files_upload(
             audio_bytes,
             full_path,
