@@ -44,7 +44,7 @@ st.title("Arabic Speech Data Collector")
 
 speaker_type = st.radio(
     "نوع المتكلم",
-    ["نطق طبيعي", "لثغة في س", "لثغة في ر", "لثغة في س و ر"]
+    ["'نطق طبيعي", "لثغة في 'س'", "لثغة في 'ر'", "لثغة في 'س' و 'ر"]
 )
 
 st.markdown("""
@@ -85,23 +85,42 @@ TOTAL_REQUIRED = sum(len(v) for v in structure.values())
 # AUDIO FUNCTIONS
 # ==============================
 
-def validate_audio(audio):
-    rms = np.sqrt(np.mean(audio**2))
-    return rms >= MIN_RMS_THRESHOLD
+import webrtcvad
 
-def process_audio(audio_bytes):
-    audio, _ = librosa.load(io.BytesIO(audio_bytes), sr=SAMPLE_RATE, mono=True)
+vad = webrtcvad.Vad(2) 
 
-    trimmed_audio, _ = librosa.effects.trim(audio, top_db=20)
+def apply_vad(audio_bytes):
+    audio, sr = librosa.load(io.BytesIO(audio_bytes), sr=SAMPLE_RATE, mono=True)
+
+    audio_int16 = (audio * 32768).astype(np.int16)
+
+    frame_duration = 30 
+    frame_size = int(SAMPLE_RATE * frame_duration / 1000)
+
+    speech_frames = []
+    start_index = None
+
+    for i in range(0, len(audio_int16) - frame_size, frame_size):
+        frame = audio_int16[i:i+frame_size]
+        is_speech = vad.is_speech(frame.tobytes(), SAMPLE_RATE)
+
+        if is_speech and start_index is None:
+            start_index = i
+            break
+
+    if start_index is None:
+        return None  
+
+    trimmed = audio[start_index:]
 
     target_len = SAMPLE_RATE * RECORD_SECONDS
 
-    if len(trimmed_audio) > target_len:
-        trimmed_audio = trimmed_audio[:target_len]
+    if len(trimmed) > target_len:
+        trimmed = trimmed[:target_len]
     else:
-        trimmed_audio = np.pad(trimmed_audio, (0, target_len - len(trimmed_audio)))
+        trimmed = np.pad(trimmed, (0, target_len - len(trimmed)))
 
-    return trimmed_audio
+    return trimmed
 
 # ==============================
 # RECORDING
@@ -123,19 +142,17 @@ for letter, harakat in structure.items():
             raw_bytes = audio_file.read()
             audio_array, _ = librosa.load(io.BytesIO(raw_bytes), sr=None, mono=True)
 
-            if validate_audio(audio_array):
+           processed = apply_vad(raw_bytes)
 
-                processed = process_audio(raw_bytes)
-                buffer = io.BytesIO()
-                write(buffer, SAMPLE_RATE, processed.astype(np.float32))
-                buffer.seek(0)
-
-                st.session_state.recordings[key] = buffer.read()
-                st.success("✔ تم التسجيل")
-
-            else:
-                st.error("الصوت منخفض جدًا")
-
+        if processed is not None:
+            buffer = io.BytesIO()
+            write(buffer, SAMPLE_RATE, processed.astype(np.float32))
+            buffer.seek(0)
+        
+            st.session_state.recordings[key] = buffer.read()
+            st.success("✔ تم التسجيل")
+        else:
+            st.error("الصوت مش واضح سجل تاني")
         if key in st.session_state.recordings:
             completed += 1
 
