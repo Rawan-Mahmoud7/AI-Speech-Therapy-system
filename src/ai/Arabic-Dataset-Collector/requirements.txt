@@ -2,6 +2,4 @@ streamlit
 numpy
 dropbox
 librosa
-torch
-torchaudio
 scipy
