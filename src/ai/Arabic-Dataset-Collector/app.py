@@ -1,7 +1,7 @@
 import streamlit as st
 import dropbox
 import numpy as np
-import librosa
+#import librosa
 import io
 import time
 import uuid
@@ -111,7 +111,7 @@ for letter, harakat in structure.items():
 
             is_valid, msg = validate_audio(raw_bytes)
             if not is_valid:
-            st.warning(msg)
+                st.warning(msg)
             else:
                 buffer = io.BytesIO()
                 write(buffer, SAMPLE_RATE, processed.astype(np.float32))
@@ -181,4 +181,4 @@ if st.button("SUBMIT"):
     st.session_state.speaker_id = f"speaker_{uuid.uuid4().hex[:12]}"
     st.rerun()
 
-    st.success("🎉 تم رفع البيانات كاملة بنجاح!")
+    #st.success("🎉 تم رفع البيانات كاملة بنجاح!")
