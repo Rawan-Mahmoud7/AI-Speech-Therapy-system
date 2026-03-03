@@ -6,7 +6,21 @@ import io
 import time
 from datetime import datetime
 from scipy.io.wavfile import write
+import torch
+import torchaudio
 
+# تحميل Silero VAD مرة واحدة
+@st.cache_resource
+def load_vad_model():
+    model, utils = torch.hub.load(
+        repo_or_dir='snakers4/silero-vad',
+        model='silero_vad',
+        force_reload=False
+    )
+    return model, utils
+
+vad_model, vad_utils = load_vad_model()
+(get_speech_timestamps, _, read_audio, _, _) = vad_utils
 # ==============================
 # CONFIG
 # ==============================
@@ -44,11 +58,11 @@ st.title("Arabic Speech Data Collector")
 
 speaker_type = st.radio(
     "نوع المتكلم",
-    ["'نطق طبيعي", "لثغة في 'س'", "لثغة في 'ر'", "لثغة في 'س' و 'ر"]
+    ["نطق طبيعي", "لثغة في س","لثغة في ر" , "لثغة في س / ر"]
 )
 
 st.markdown("""
-- التسجيل مدته ثانية واحدة فقط
+- التسجيل مدته ثانية واحدة بس ياريت المكان يبقي هادي والنطق يبقي في الثانيه ميزدش التسجيل عن ثانيه 
 - اقرأ الحرف مرة واحدة
 - 'انطق الحرف صوت الحرف مش الكلمه مثال 'س' مش 'سين 
 -  لا تضف كلمات إضافية
@@ -75,7 +89,7 @@ if speaker_type == "لثغة في س":
 elif speaker_type == "لثغة في ر":
     structure["ر_لثغه"] = structure.pop("ر")
 
-elif speaker_type == "لثغة في س و ر":
+elif speaker_type == "لثغة في س / ر":
     structure["س_لثغه"] = structure.pop("س")
     structure["ر_لثغه"] = structure.pop("ر")
 
@@ -85,13 +99,39 @@ TOTAL_REQUIRED = sum(len(v) for v in structure.values())
 # AUDIO FUNCTIONS
 # ==============================
 def apply_vad(audio_bytes):
+
+    # تحميل الصوت 16k mono
     audio, _ = librosa.load(io.BytesIO(audio_bytes), sr=SAMPLE_RATE, mono=True)
 
-    trimmed, _ = librosa.effects.trim(audio, top_db=30)
+    # High-pass filter بسيط عشان نشيل همهمة البيت
+    audio = librosa.effects.preemphasis(audio)
 
-    if len(trimmed) == 0:
+    # نحوله Tensor
+    audio_tensor = torch.from_numpy(audio).float()
+
+    # استخراج مناطق الكلام
+    speech_timestamps = get_speech_timestamps(
+        audio_tensor,
+        vad_model,
+        sampling_rate=SAMPLE_RATE,
+        min_speech_duration_ms=100,   # مهم للحروف القصيرة
+        min_silence_duration_ms=50
+    )
+
+    if len(speech_timestamps) == 0:
         return None
 
+    # ناخد أول segment بس
+    start = speech_timestamps[0]['start']
+    end = speech_timestamps[0]['end']
+
+    trimmed = audio[start:end]
+
+    # Padding بسيط عشان مانقصش طرف الحرف
+    pad = int(0.05 * SAMPLE_RATE)
+    trimmed = np.pad(trimmed, (pad, pad))
+
+    # نخليه 1 ثانية ثابتة
     target_len = SAMPLE_RATE * RECORD_SECONDS
 
     if len(trimmed) > target_len:
@@ -99,6 +139,8 @@ def apply_vad(audio_bytes):
     else:
         trimmed = np.pad(trimmed, (0, target_len - len(trimmed)))
 
+    # Normalize خفيف
+    trimmed = trimmed / (np.max(np.abs(trimmed)) + 1e-6)
     return trimmed
 
 # ==============================
