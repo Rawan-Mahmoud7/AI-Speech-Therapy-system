@@ -4,23 +4,9 @@ import numpy as np
 import librosa
 import io
 import time
+import uuid
 from datetime import datetime
 from scipy.io.wavfile import write
-import torch
-import torchaudio
-
-# تحميل Silero VAD مرة واحدة
-@st.cache_resource
-def load_vad_model():
-    model, utils = torch.hub.load(
-        repo_or_dir='snakers4/silero-vad',
-        model='silero_vad',
-        force_reload=False
-    )
-    return model, utils
-
-vad_model, vad_utils = load_vad_model()
-(get_speech_timestamps, _, read_audio, _, _) = vad_utils
 # ==============================
 # CONFIG
 # ==============================
@@ -46,9 +32,8 @@ if "recordings" not in st.session_state:
 if "last_submit_time" not in st.session_state:
     st.session_state.last_submit_time = 0
 
-# توليد Speaker ID تلقائي مرة واحدة للجلسة
 if "speaker_id" not in st.session_state:
-    st.session_state.speaker_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+    st.session_state.speaker_id = f"speaker_{uuid.uuid4().hex[:12]}"
 
 # ==============================
 # UI
@@ -98,50 +83,12 @@ TOTAL_REQUIRED = sum(len(v) for v in structure.values())
 # ==============================
 # AUDIO FUNCTIONS
 # ==============================
-def apply_vad(audio_bytes):
+def validate_audio(audio):
+    rms = np.sqrt(np.mean(audio**2))
+    if rms < MIN_RMS_THRESHOLD:
+        return False, "الصوت مش واضح سجل تاني"
+    return True , None
 
-    # تحميل الصوت 16k mono
-    audio, _ = librosa.load(io.BytesIO(audio_bytes), sr=SAMPLE_RATE, mono=True)
-
-    # High-pass filter بسيط عشان نشيل همهمة البيت
-    audio = librosa.effects.preemphasis(audio)
-
-    # نحوله Tensor
-    audio_tensor = torch.from_numpy(audio).float()
-
-    # استخراج مناطق الكلام
-    speech_timestamps = get_speech_timestamps(
-        audio_tensor,
-        vad_model,
-        sampling_rate=SAMPLE_RATE,
-        min_speech_duration_ms=100,   # مهم للحروف القصيرة
-        min_silence_duration_ms=50
-    )
-
-    if len(speech_timestamps) == 0:
-        return None
-
-    # ناخد أول segment بس
-    start = speech_timestamps[0]['start']
-    end = speech_timestamps[0]['end']
-
-    trimmed = audio[start:end]
-
-    # Padding بسيط عشان مانقصش طرف الحرف
-    pad = int(0.05 * SAMPLE_RATE)
-    trimmed = np.pad(trimmed, (pad, pad))
-
-    # نخليه 1 ثانية ثابتة
-    target_len = SAMPLE_RATE * RECORD_SECONDS
-
-    if len(trimmed) > target_len:
-        trimmed = trimmed[:target_len]
-    else:
-        trimmed = np.pad(trimmed, (0, target_len - len(trimmed)))
-
-    # Normalize خفيف
-    trimmed = trimmed / (np.max(np.abs(trimmed)) + 1e-6)
-    return trimmed
 
 # ==============================
 # RECORDING
@@ -161,19 +108,18 @@ for letter, harakat in structure.items():
         if audio_file is not None:
 
             raw_bytes = audio_file.read()
-            audio_array, _ = librosa.load(io.BytesIO(raw_bytes), sr=None, mono=True)
 
-            processed = apply_vad(raw_bytes)
-            
-            if processed is not None:
+            is_valid, msg = validate_audio(raw_bytes)
+            if not is_valid:
+            st.warning(msg)
+            else:
                 buffer = io.BytesIO()
                 write(buffer, SAMPLE_RATE, processed.astype(np.float32))
                 buffer.seek(0)
             
                 st.session_state.recordings[key] = buffer.read()
                 st.success("✔ تم التسجيل")
-            else:
-                st.error("الصوت مش واضح سجل تاني")
+           
             
         if key in st.session_state.recordings:
             completed += 1
@@ -190,7 +136,7 @@ def ensure_folder(path):
     except dropbox.exceptions.ApiError:
         dbx.files_create_folder_v2(path)
         
-if st.button("رفع البيانات"):
+if st.button("SUBMIT"):
 
     current_time = time.time()
 
@@ -199,27 +145,27 @@ if st.button("رفع البيانات"):
         st.stop()
 
     if completed != TOTAL_REQUIRED:
-        st.error("سجل كل الحروف أولاً")
+        st.error("سجل كل الحروف الاول")
         st.stop()
 
     progress_bar = st.progress(0)
     count = 0
 
     base_folder = f"/ArabicSpeechDataset/{speaker_type}"
-
+    ensure_folder(base_folder)
     speaker_id = st.session_state.speaker_id
+    for letter, harakat in structure.items():
+    ensure_folder(f"{base_folder}/{letter}")
+    for haraka in harakat:
+        ensure_folder(f"{base_folder}/{letter}/{haraka}")ش
 
     for key, audio_bytes in st.session_state.recordings.items():
 
         letter, haraka = key.split("__")
 
-        filename = f"{speaker_id}.wav"
+        filename = f"{speaker_id}_{letter}_{haraka}_{int(time.time())}.wav"
         folder_path = f"{base_folder}/{letter}/{haraka}"
         full_path = f"{folder_path}/{filename}"
-        
-        ensure_folder(base_folder)
-        ensure_folder(f"{base_folder}/{letter}")
-        ensure_folder(folder_path)
         
         dbx.files_upload(
             audio_bytes,
@@ -231,7 +177,8 @@ if st.button("رفع البيانات"):
         progress_bar.progress(count / TOTAL_REQUIRED)
 
     st.session_state.last_submit_time = current_time
-    st.session_state.clear()
+    st.session_state.recordings = {}
+    st.session_state.speaker_id = f"speaker_{uuid.uuid4().hex[:12]}"
     st.rerun()
 
-    st.success("🎉 تم رفع الجلسة كاملة بنجاح!")
+    st.success("🎉 تم رفع البيانات كاملة بنجاح!")
