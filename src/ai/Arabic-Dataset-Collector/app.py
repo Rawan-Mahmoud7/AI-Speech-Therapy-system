@@ -155,7 +155,7 @@ if st.button("SUBMIT"):
     ensure_folder(base_folder)
     speaker_id = st.session_state.speaker_id
     for letter, harakat in structure.items():
-    ensure_folder(f"{base_folder}/{letter}")
+        ensure_folder(f"{base_folder}/{letter}")
     for haraka in harakat:
         ensure_folder(f"{base_folder}/{letter}/{haraka}")ش
 
