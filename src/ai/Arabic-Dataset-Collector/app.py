@@ -157,7 +157,7 @@ if st.button("SUBMIT"):
     for letter, harakat in structure.items():
         ensure_folder(f"{base_folder}/{letter}")
     for haraka in harakat:
-        ensure_folder(f"{base_folder}/{letter}/{haraka}")ش
+        ensure_folder(f"{base_folder}/{letter}/{haraka}")
 
     for key, audio_bytes in st.session_state.recordings.items():
 
