@@ -1,6 +1,7 @@
 streamlit
-streamlit-webrtc
-pydub
 numpy
 dropbox
 librosa
+torch
+torchaudio
+scipy
