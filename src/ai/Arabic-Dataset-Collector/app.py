@@ -45,12 +45,6 @@ def reset_session():
     st.session_state.form_session_id = uuid.uuid4().hex
     st.session_state.upload_success = True
 
-if "upload_success" not in st.session_state:
-    st.session_state.upload_success = False
-
-if st.session_state.upload_success:
-    st.success("🎉 تم رفع الجلسة كاملة بنجاح!")
-    st.session_state.upload_success = False
 # ==============================
 # UI
 # ==============================
@@ -215,6 +209,7 @@ if st.button("SUBMIT"):
 
             count += 1
             progress_bar.progress(count / TOTAL_REQUIRED)
-
+    st.success("🎉 تم رفع الجلسة كاملة بنجاح!")
+    time.sleep(2)   
     reset_session()
     st.rerun()
