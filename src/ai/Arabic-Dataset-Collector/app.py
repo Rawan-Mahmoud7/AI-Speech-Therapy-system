@@ -152,9 +152,11 @@ st.write(f"{completed} / {TOTAL_REQUIRED}")
 def ensure_folder(path):
     try:
         dbx.files_get_metadata(path)
-    except dropbox.exceptions.ApiError:
-        dbx.files_create_folder_v2(path)
-        
+    except ApiError as e:
+        if e.error.is_path() and e.error.get_path().is_not_found():
+            dbx.files_create_folder_v2(path)
+        else:
+            raise e
 if st.button("SUBMIT"):
 
     current_time = time.time()
@@ -168,24 +170,31 @@ if st.button("SUBMIT"):
         st.stop()
 
     progress_bar = st.progress(0)
-    count = 0
+count = 0
 
-    base_folder = f"/ArabicSpeechDataset/{speaker_type}"
-    ensure_folder(base_folder)
-    speaker_id = st.session_state.speaker_id
-    for letter, harakat in structure.items():
-        ensure_folder(f"{base_folder}/{letter}")
-        for haraka in harakat:
-            ensure_folder(f"{base_folder}/{letter}/{haraka}")
+base_folder = f"/ArabicSpeechDataset/{speaker_type}"
+ensure_folder(base_folder)
+speaker_id = st.session_state.speaker_id
 
-    for key, audio_bytes in st.session_state.recordings.items():
+for letter, harakat in structure.items():
 
-        letter, haraka = key.split("__")
+    ensure_folder(f"{base_folder}/{letter}")
+
+    for haraka in harakat:
+
+        ensure_folder(f"{base_folder}/{letter}/{haraka}")
+
+        key = f"{st.session_state.form_session_id}_{letter}__{haraka}"
+
+        if key not in st.session_state.recordings:
+            continue
+
+        audio_bytes = st.session_state.recordings[key]
 
         filename = f"{speaker_id}_{letter}_{haraka}_{int(time.time())}.wav"
         folder_path = f"{base_folder}/{letter}/{haraka}"
         full_path = f"{folder_path}/{filename}"
-        
+
         dbx.files_upload(
             audio_bytes,
             full_path,
@@ -194,7 +203,6 @@ if st.button("SUBMIT"):
 
         count += 1
         progress_bar.progress(count / TOTAL_REQUIRED)
-
    
     st.success("🎉 تم رفع الجلسة كاملة بنجاح!")
     time.sleep(2)
