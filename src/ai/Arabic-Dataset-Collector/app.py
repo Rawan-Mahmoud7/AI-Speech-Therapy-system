@@ -88,7 +88,7 @@ def validate_audio(audio):
     rms = np.sqrt(np.mean(audio**2))
     if rms < MIN_RMS_THRESHOLD:
         return False, "الصوت مش واضح سجل تاني" 
-        return True , None
+    return True , None
 def process_audio_clean(audio_bytes, sample_rate=16000):
 
     # Decode + Resample + Mono
