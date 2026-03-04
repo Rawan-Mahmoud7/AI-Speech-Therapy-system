@@ -207,7 +207,7 @@ for letter, harakat in structure.items():
     st.success("🎉 تم رفع الجلسة كاملة بنجاح!")
     time.sleep(2)
     st.session_state.recordings = {}
-    st.session_state.last_submit_time = current_time
+    #st.session_state.last_submit_time = current_time
     st.session_state.speaker_id = f"speaker_{uuid.uuid4().hex[:12]}"
     st.session_state.form_session_id = uuid.uuid4().hex
     
