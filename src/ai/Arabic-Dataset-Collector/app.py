@@ -37,7 +37,9 @@ if "speaker_id" not in st.session_state:
     
 if "form_session_id" not in st.session_state:
     st.session_state.form_session_id = uuid.uuid4().hex
-
+    
+if "is_uploading" not in st.session_state:
+    st.session_state.is_uploading = False
 def reset_session():
     st.session_state.recordings = {}
     st.session_state.last_submit_time = time.time()
