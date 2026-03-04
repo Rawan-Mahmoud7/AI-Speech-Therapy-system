@@ -53,7 +53,7 @@ st.title("Arabic Speech Data Collector")
 
 speaker_type = st.radio(
     "نوع المتكلم",
-    ["نطق طبيعي", "لثغة في س","لثغة في ر" , "لثغة في س / ر"]
+    ["نطق طبيعي", "لثغة في س","لثغة في ر" , "لثغة في س _ ر"]
 )
 
 st.markdown("""
