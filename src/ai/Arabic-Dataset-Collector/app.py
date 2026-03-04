@@ -192,12 +192,9 @@ if st.button("SUBMIT"):
         count += 1
         progress_bar.progress(count / TOTAL_REQUIRED)
 
-    placeholder = st.empty()
-    placeholder.success("🎉 تم رفع الجلسة كاملة بنجاح!")
-    
+   
+    st.success("🎉 تم رفع الجلسة كاملة بنجاح!")
     time.sleep(2)
-    
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    
+    st.session_state.last_submit_time = current_time
+    st.session_state.clear()
     st.rerun()
