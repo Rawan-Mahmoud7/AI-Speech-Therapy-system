@@ -196,6 +196,5 @@ if st.button("SUBMIT"):
 
     time.sleep(2)   
     placeholder.empty() 
-    st.session_state.clear()
     st.rerun()
    
