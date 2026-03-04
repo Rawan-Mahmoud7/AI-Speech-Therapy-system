@@ -172,8 +172,8 @@ if st.button("SUBMIT"):
     speaker_id = st.session_state.speaker_id
     for letter, harakat in structure.items():
         ensure_folder(f"{base_folder}/{letter}")
-    for haraka in harakat:
-        ensure_folder(f"{base_folder}/{letter}/{haraka}")
+        for haraka in harakat:
+            ensure_folder(f"{base_folder}/{letter}/{haraka}")
 
     for key, audio_bytes in st.session_state.recordings.items():
 
@@ -191,7 +191,13 @@ if st.button("SUBMIT"):
 
         count += 1
         progress_bar.progress(count / TOTAL_REQUIRED)
+
+    placeholder = st.empty()
+    placeholder.success("🎉 تم رفع الجلسة كاملة بنجاح!")
     
-    st.session_state.clear()
+    time.sleep(2)
+    
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    
     st.rerun()
-   
