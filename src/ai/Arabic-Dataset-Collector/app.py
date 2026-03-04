@@ -53,7 +53,7 @@ st.title("Arabic Speech Data Collector")
 
 speaker_type = st.radio(
     "نوع المتكلم",
-    ["نطق طبيعي", "لثغة في س","لثغة في ر" , "لثغة في س _ ر"]
+    ["نطق طبيعي", "لثغة في س","لثغة في ر" , "لثغة في س - ر"]
 )
 
 st.markdown("""
@@ -86,7 +86,7 @@ if speaker_type == "لثغة في س":
 elif speaker_type == "لثغة في ر":
     structure["ر_لثغه"] = structure.pop("ر")
 
-elif speaker_type == "لثغة في س / ر":
+elif speaker_type == "لثغة في س - ر":
     structure["س_لثغه"] = structure.pop("س")
     structure["ر_لثغه"] = structure.pop("ر")
 
