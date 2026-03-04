@@ -34,7 +34,9 @@ if "last_submit_time" not in st.session_state:
 
 if "speaker_id" not in st.session_state:
     st.session_state.speaker_id = f"speaker_{uuid.uuid4().hex[:12]}"
-
+    
+if "form_session_id" not in st.session_state:
+    st.session_state.form_session_id = uuid.uuid4().hex
 # ==============================
 # UI
 # ==============================
