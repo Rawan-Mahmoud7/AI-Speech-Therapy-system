@@ -52,7 +52,8 @@ st.markdown("""
 - اقرأ الحرف مرة واحدة
 - لا تضف كلمات إضافية
 - اضغط علي علامه المايك عشان تعيد التسجيل لو مش مظبوط 
-- متعملش refresh قبل ما ترفع التسجيلات عشان هتمسحهم كلهم وهتسجل تاني ⚠️
+- متعملش refresh
+قبل ما ترفع التسجيلات عشان هتمسحهم كلهم وهتسجل تاني ⚠️
 """)
 
 # ==============================
@@ -118,7 +119,7 @@ for letter, harakat in structure.items():
 
     for haraka in harakat:
 
-        key = f"{letter}__{haraka}"
+       key = f"{st.session_state.form_session_id}_{letter}__{haraka}"
         audio_file = st.audio_input(f"{letter} - {haraka}", key=key)
 
         if audio_file is not None:
@@ -194,7 +195,10 @@ if st.button("SUBMIT"):
 
    
     st.success("🎉 تم رفع الجلسة كاملة بنجاح!")
-    #time.sleep(2)
+    time.sleep(2)
+    st.session_state.recordings = {}
     st.session_state.last_submit_time = current_time
-    st.session_state.clear()
+    st.session_state.speaker_id = f"speaker_{uuid.uuid4().hex[:12]}"
+    st.session_state.form_session_id = uuid.uuid4().hex
+    
     st.rerun()
