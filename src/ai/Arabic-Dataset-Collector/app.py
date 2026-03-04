@@ -162,56 +162,54 @@ def ensure_folder(path):
         dbx.files_get_metadata(path)
     except dropbox.exceptions.ApiError:
         dbx.files_create_folder_v2(path)
-if not st.session_state.get("is_uploading", False):
-    if st.button("SUBMIT"):
-        st.session_state.is_uploading = True
 
+if st.button("SUBMIT", disabled=st.session_state.is_uploading):
 
-        current_time = time.time()
-    
-        if completed != TOTAL_REQUIRED:
-            st.error("سجل كل الحروف الاول")
-            st.stop()
-    
-        progress_bar = st.progress(0)
-        count = 0
-    
-        base_folder = f"/ArabicSpeechDataset/{speaker_type}"
-        ensure_folder(base_folder)
-        speaker_id = st.session_state.speaker_id
-    
-        for letter, harakat in structure.items():
-    
-            ensure_folder(f"{base_folder}/{letter}")
-    
-            for haraka in harakat:
-    
-                ensure_folder(f"{base_folder}/{letter}/{haraka}")
-    
-                key = f"{st.session_state.form_session_id}_{letter}__{haraka}"
-    
-                if key not in st.session_state.recordings:
-                    continue
-    
-                audio_bytes = st.session_state.recordings[key]
-    
-                filename = f"{speaker_id}_{letter}_{haraka}_{int(time.time())}.wav"
-                folder_path = f"{base_folder}/{letter}/{haraka}"
-                full_path = f"{folder_path}/{filename}"
-    
-                dbx.files_upload(
-                    audio_bytes,
-                    full_path,
-                    mode=dropbox.files.WriteMode.overwrite
-                )
-    
-                count += 1
-                progress_bar.progress(count / TOTAL_REQUIRED)
-            st.success("🎉 تم رفع الجلسة كاملة بنجاح!")
-            time.sleep(2)   
-            reset_session()
-            st.rerun()
-else:
-    st.info("⏳ جاري رفع التسجيلات ...")
+    st.session_state.is_uploading = True
 
+    if current_time - st.session_state.last_submit_time < MIN_INTERVAL_BETWEEN_SUBMITS:
+        st.error("انتظر قليلاً قبل إعادة الإرسال")
+        st.stop()
 
+    if completed != TOTAL_REQUIRED:
+        st.error("سجل كل الحروف الاول")
+        st.stop()
+
+    progress_bar = st.progress(0)
+    count = 0
+
+    base_folder = f"/ArabicSpeechDataset/{speaker_type}"
+    ensure_folder(base_folder)
+    speaker_id = st.session_state.speaker_id
+
+    for letter, harakat in structure.items():
+
+        ensure_folder(f"{base_folder}/{letter}")
+
+        for haraka in harakat:
+
+            ensure_folder(f"{base_folder}/{letter}/{haraka}")
+
+            key = f"{st.session_state.form_session_id}_{letter}__{haraka}"
+
+            if key not in st.session_state.recordings:
+                continue
+
+            audio_bytes = st.session_state.recordings[key]
+
+            filename = f"{speaker_id}_{letter}_{haraka}_{int(time.time())}.wav"
+            folder_path = f"{base_folder}/{letter}/{haraka}"
+            full_path = f"{folder_path}/{filename}"
+
+            dbx.files_upload(
+                audio_bytes,
+                full_path,
+                mode=dropbox.files.WriteMode.overwrite
+            )
+
+            count += 1
+            progress_bar.progress(count / TOTAL_REQUIRED)
+    st.success("🎉 تم رفع الجلسة كاملة بنجاح!")
+    time.sleep(2)   
+    reset_session()
+    st.rerun()
