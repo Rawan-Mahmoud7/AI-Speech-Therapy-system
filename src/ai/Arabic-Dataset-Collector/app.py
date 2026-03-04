@@ -44,7 +44,7 @@ def reset_session():
     st.session_state.speaker_id = f"speaker_{uuid.uuid4().hex[:12]}"
     st.session_state.form_session_id = uuid.uuid4().hex
     st.session_state.upload_success = True
-
+    st.session_state.is_uploading = False
 # ==============================
 # UI
 # ==============================
@@ -162,14 +162,16 @@ def ensure_folder(path):
         dbx.files_get_metadata(path)
     except dropbox.exceptions.ApiError:
         dbx.files_create_folder_v2(path)
+if "is_uploading" not in st.session_state:
+    st.session_state.is_uploading = False
         
 if st.button("SUBMIT"):
-
-    current_time = time.time()
-
-    if current_time - st.session_state.last_submit_time < MIN_INTERVAL_BETWEEN_SUBMITS:
-        st.error("انتظر قليلاً قبل إعادة الإرسال")
+    if st.session_state.is_uploading:
+        st.warning("بدا التحميل")
         st.stop()
+
+    st.session_state.is_uploading = True
+    current_time = time.time()
 
     if completed != TOTAL_REQUIRED:
         st.error("سجل كل الحروف الاول")
