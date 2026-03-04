@@ -1,7 +1,7 @@
 import streamlit as st
 import dropbox
 import numpy as np
-#import librosa
+import librosa
 import io
 import time
 import uuid
@@ -89,7 +89,23 @@ def validate_audio(audio):
         return False, "الصوت مش واضح سجل تاني"
     return True , None
 
+def process_audio_clean(audio_bytes, sample_rate=16000):
 
+    # Decode + Resample + Mono
+    audio, sr = librosa.load(
+        io.BytesIO(audio_bytes),
+        sr=sample_rate,      
+        mono=True
+    )
+
+    audio = audio - np.mean(audio)
+
+    audio, _ = librosa.effects.trim(
+        audio,
+        top_db=30   
+    )
+
+    return audio
 # ==============================
 # RECORDING
 # ==============================
@@ -108,8 +124,8 @@ for letter, harakat in structure.items():
         if audio_file is not None:
 
             raw_bytes = audio_file.read()
-
-            is_valid, msg = validate_audio(raw_bytes)
+            processed = process_audio_clean(raw_bytes)
+            is_valid, msg = validate_audio(processed)
             if not is_valid:
                 st.warning(msg)
             else:
