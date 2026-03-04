@@ -168,7 +168,7 @@ def ensure_folder(path):
 if st.button("SUBMIT", disabled=st.session_state.is_uploading):
 
     st.session_state.is_uploading = True
-    st.session_state.upload_success = False
+    #st.session_state.upload_success = False
     current_time = time.time()
     
 
