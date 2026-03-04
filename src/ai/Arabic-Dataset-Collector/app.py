@@ -226,7 +226,8 @@ if st.button("SUBMIT"):
         progress_bar.progress(count / TOTAL_REQUIRED)
 
     st.session_state.last_submit_time = current_time
-    st.session_state.recordings = {}
+    st.success("🎉 تم رفع البيانات كاملة بنجاح!")
     st.session_state.clear()
+    st.rerun()
 
-    #st.success("🎉 تم رفع البيانات كاملة بنجاح!")
+   
