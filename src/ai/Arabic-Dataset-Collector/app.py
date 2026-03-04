@@ -84,10 +84,43 @@ TOTAL_REQUIRED = sum(len(v) for v in structure.values())
 # AUDIO FUNCTIONS
 # ==============================
 def validate_audio(audio):
-    rms = np.sqrt(np.mean(audio**2))
-    if rms < MIN_RMS_THRESHOLD:
-        return False, "الصوت مش واضح سجل تاني"
-    return True , None
+
+    if len(audio) == 0:
+        return False, "مفيش صوت واضح"
+
+    audio = audio.astype(np.float32)
+
+    if np.max(np.abs(audio)) > 0:
+        audio = audio / np.max(np.abs(audio))
+
+    global_rms = np.sqrt(np.mean(audio**2))
+    if global_rms < 0.01:
+        return False, "الصوت ضعيف جدًا"
+
+    frame_size = 400
+    hop_size = 160
+
+    energies = []
+
+    for i in range(0, len(audio) - frame_size, hop_size):
+        frame = audio[i:i+frame_size]
+        frame_rms = np.sqrt(np.mean(frame**2))
+        energies.append(frame_rms)
+
+    if len(energies) == 0:
+        return False, "التسجيل قصير جدًا"
+
+    energies = np.array(energies)
+
+    threshold = np.mean(energies) * 1.2
+    speech_frames = energies > threshold
+
+    speech_ratio = np.sum(speech_frames) / len(energies)
+
+    if speech_ratio < 0.2:
+        return False, "الصوت قصير أو أغلبه صمت"
+
+    return True, None
 
 def process_audio_clean(audio_bytes, sample_rate=16000):
 
@@ -194,7 +227,6 @@ if st.button("SUBMIT"):
 
     st.session_state.last_submit_time = current_time
     st.session_state.recordings = {}
-    st.session_state.speaker_id = f"speaker_{uuid.uuid4().hex[:12]}"
-    st.rerun()
+    st.session_state.clear()
 
     #st.success("🎉 تم رفع البيانات كاملة بنجاح!")
