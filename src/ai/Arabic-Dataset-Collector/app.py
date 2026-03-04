@@ -194,7 +194,7 @@ if st.button("SUBMIT"):
 
    
     st.success("🎉 تم رفع الجلسة كاملة بنجاح!")
-    time.sleep(2)
+    #time.sleep(2)
     st.session_state.last_submit_time = current_time
     st.session_state.clear()
     st.rerun()
