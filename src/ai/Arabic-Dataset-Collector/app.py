@@ -191,11 +191,7 @@ if st.button("SUBMIT"):
 
         count += 1
         progress_bar.progress(count / TOTAL_REQUIRED)
-    placeholder = st.empty()
-    placeholder.success("🎉 تم رفع البيانات كاملة بنجاح!")
-
-    time.sleep(2)   
-    placeholder.empty() 
+    
     st.session_state.clear()
     st.rerun()
    
