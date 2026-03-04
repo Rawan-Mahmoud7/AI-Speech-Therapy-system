@@ -37,6 +37,20 @@ if "speaker_id" not in st.session_state:
     
 if "form_session_id" not in st.session_state:
     st.session_state.form_session_id = uuid.uuid4().hex
+
+def reset_session():
+    st.session_state.recordings = {}
+    st.session_state.last_submit_time = time.time()
+    st.session_state.speaker_id = f"speaker_{uuid.uuid4().hex[:12]}"
+    st.session_state.form_session_id = uuid.uuid4().hex
+    st.session_state.upload_success = True
+
+if "upload_success" not in st.session_state:
+    st.session_state.upload_success = False
+
+if st.session_state.upload_success:
+    st.success("🎉 تم رفع الجلسة كاملة بنجاح!")
+    st.session_state.upload_success = False
 # ==============================
 # UI
 # ==============================
@@ -168,45 +182,39 @@ if st.button("SUBMIT"):
         st.stop()
 
     progress_bar = st.progress(0)
-count = 0
+    count = 0
 
-base_folder = f"/ArabicSpeechDataset/{speaker_type}"
-ensure_folder(base_folder)
-speaker_id = st.session_state.speaker_id
+    base_folder = f"/ArabicSpeechDataset/{speaker_type}"
+    ensure_folder(base_folder)
+    speaker_id = st.session_state.speaker_id
 
-for letter, harakat in structure.items():
+    for letter, harakat in structure.items():
 
-    ensure_folder(f"{base_folder}/{letter}")
+        ensure_folder(f"{base_folder}/{letter}")
 
-    for haraka in harakat:
+        for haraka in harakat:
 
-        ensure_folder(f"{base_folder}/{letter}/{haraka}")
+            ensure_folder(f"{base_folder}/{letter}/{haraka}")
 
-        key = f"{st.session_state.form_session_id}_{letter}__{haraka}"
+            key = f"{st.session_state.form_session_id}_{letter}__{haraka}"
 
-        if key not in st.session_state.recordings:
-            continue
+            if key not in st.session_state.recordings:
+                continue
 
-        audio_bytes = st.session_state.recordings[key]
+            audio_bytes = st.session_state.recordings[key]
 
-        filename = f"{speaker_id}_{letter}_{haraka}_{int(time.time())}.wav"
-        folder_path = f"{base_folder}/{letter}/{haraka}"
-        full_path = f"{folder_path}/{filename}"
+            filename = f"{speaker_id}_{letter}_{haraka}_{int(time.time())}.wav"
+            folder_path = f"{base_folder}/{letter}/{haraka}"
+            full_path = f"{folder_path}/{filename}"
 
-        dbx.files_upload(
-            audio_bytes,
-            full_path,
-            mode=dropbox.files.WriteMode.overwrite
-        )
+            dbx.files_upload(
+                audio_bytes,
+                full_path,
+                mode=dropbox.files.WriteMode.overwrite
+            )
 
-        count += 1
-        progress_bar.progress(count / TOTAL_REQUIRED)
-   
-    st.success("🎉 تم رفع الجلسة كاملة بنجاح!")
-    time.sleep(2)
-    st.session_state.recordings = {}
-    #st.session_state.last_submit_time = current_time
-    st.session_state.speaker_id = f"speaker_{uuid.uuid4().hex[:12]}"
-    st.session_state.form_session_id = uuid.uuid4().hex
-    
+            count += 1
+            progress_bar.progress(count / TOTAL_REQUIRED)
+
+    reset_session()
     st.rerun()
