@@ -168,10 +168,9 @@ def ensure_folder(path):
 if st.button("SUBMIT", disabled=st.session_state.is_uploading):
 
     st.session_state.is_uploading = True
+    st.session_state.upload_success = False
     current_time = time.time()
-    if current_time - st.session_state.last_submit_time < MIN_INTERVAL_BETWEEN_SUBMITS:
-        st.error("انتظر قليلاً قبل إعادة الإرسال")
-        st.stop()
+    
 
     if completed != TOTAL_REQUIRED:
         st.error("سجل كل الحروف الاول")
@@ -213,5 +212,6 @@ if st.button("SUBMIT", disabled=st.session_state.is_uploading):
             progress_bar.progress(count / TOTAL_REQUIRED)
     st.success("🎉 تم رفع الجلسة كاملة بنجاح!")
     time.sleep(2)   
+    st.session_state.is_uploading = False 
     reset_session()
     st.rerun()
