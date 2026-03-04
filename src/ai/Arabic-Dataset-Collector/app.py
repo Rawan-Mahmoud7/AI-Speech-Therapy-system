@@ -214,4 +214,4 @@ if not st.session_state.get("is_uploading", False):
 else:
     st.info("⏳ جاري رفع التسجيلات ...")
 
-✅ النتيجة:
+
