@@ -119,7 +119,7 @@ for letter, harakat in structure.items():
 
     for haraka in harakat:
 
-       key = f"{st.session_state.form_session_id}_{letter}__{haraka}"
+        key = f"{st.session_state.form_session_id}_{letter}__{haraka}"
         audio_file = st.audio_input(f"{letter} - {haraka}", key=key)
 
         if audio_file is not None:
