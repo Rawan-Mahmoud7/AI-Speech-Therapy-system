@@ -168,7 +168,7 @@ def ensure_folder(path):
 if st.button("SUBMIT", disabled=st.session_state.is_uploading):
 
     st.session_state.is_uploading = True
-
+    current_time = time.time()
     if current_time - st.session_state.last_submit_time < MIN_INTERVAL_BETWEEN_SUBMITS:
         st.error("انتظر قليلاً قبل إعادة الإرسال")
         st.stop()
