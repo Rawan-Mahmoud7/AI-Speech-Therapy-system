@@ -152,11 +152,9 @@ st.write(f"{completed} / {TOTAL_REQUIRED}")
 def ensure_folder(path):
     try:
         dbx.files_get_metadata(path)
-    except ApiError as e:
-        if e.error.is_path() and e.error.get_path().is_not_found():
-            dbx.files_create_folder_v2(path)
-        else:
-            raise e
+    except dropbox.exceptions.ApiError:
+        dbx.files_create_folder_v2(path)
+        
 if st.button("SUBMIT"):
 
     current_time = time.time()
