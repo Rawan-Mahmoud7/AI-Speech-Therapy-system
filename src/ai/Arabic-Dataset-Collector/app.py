@@ -166,13 +166,16 @@ def ensure_folder(path):
         dbx.files_create_folder_v2(path)
 
 if st.button("SUBMIT", disabled=st.session_state.is_uploading):
-
-    #st.session_state.is_uploading = True
-    #st.session_state.upload_success = False
+    
+    if st.session_state.is_uploading:
+        st.stop()
+    st.session_state.is_uploading = True
+    
     current_time = time.time()
     
 
     if completed != TOTAL_REQUIRED:
+        st.session_state.upload_success = False
         st.error("سجل كل الحروف الاول")
         st.stop()
 
@@ -198,7 +201,7 @@ if st.button("SUBMIT", disabled=st.session_state.is_uploading):
 
             audio_bytes = st.session_state.recordings[key]
 
-            filename = f"{speaker_id}_{letter}_{haraka}_{int(time.time())}.wav"
+            filename = f"{speaker_id}_{letter}_{haraka}_{st.session_state.form_session_id}.wav"
             folder_path = f"{base_folder}/{letter}/{haraka}"
             full_path = f"{folder_path}/{filename}"
 
