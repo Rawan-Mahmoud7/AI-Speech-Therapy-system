@@ -212,7 +212,7 @@ if st.button("SUBMIT", disabled=st.session_state.is_uploading):
 
             count += 1
             progress_bar.progress(count / TOTAL_REQUIRED)
-    st.success("🎉 تم رفع الجلسة كاملة بنجاح!")
+    st.success("🎉 تم رفع البيانات كاملة بنجاح!")
     time.sleep(2)   
     st.session_state.is_uploading = False 
     reset_session()
