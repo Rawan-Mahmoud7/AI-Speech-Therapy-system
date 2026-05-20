@@ -1,0 +1,12 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+pydantic==2.10.4
+librosa==0.10.2.post1
+soundfile==0.13.1
+numpy>=1.26.0,<2.0.0
+torch>=2.1.0
+torchaudio>=2.1.0
+transformers>=4.40.0
+# Ensure you install bournemouth-forced-aligner separately if not present
+# pip install bournemouth-forced-aligner
